@@ -1,0 +1,54 @@
+---
+title: "HW3"
+date: today
+author: 陳凱騫
+format:
+ pdf:
+    include-in-header:
+      - text: |
+         \usepackage{setspace,relsize}
+         \usepackage{geometry}
+         \geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+mainfont: "Microsoft JhengHei UI"
+toc: FALSE
+lang: zh-Tw
+documentclass: article
+pdf-engine: xelatex
+execute:
+  tidy: true
+---
+
+```{r}
+# Assuming b = X and c = Y are known values based on the actual data
+# Construct the 2x2 contingency table
+library(tinytex)
+library(readxl)
+data3 <- read_excel("q3_data.xlsx")
+head(data3)
+```
+
+```{r}
+# Step 2: Create the 2x2 contingency table
+table_data <- table(data3$`Before the debate`, data3$`After the debate`)
+print(table_data)
+# It should look like:
+#       After
+# Before    A   B
+#      A   xx  yy
+#      B   zz  ww
+```
+
+```{r}
+#| output: asis
+library(Hmisc)
+latex(describe(data3), file = "", caption.placement = "top")
+```
+
+```{r}
+# Perform McNemar's test
+result <- mcnemar.test(table_data,correct = FALSE)
+print(result)
+
+```
+
+從McNemar's Chi-squared test中可以得知其結果不拒絕虛無假設(在debate的前後其人們的想法並無改變)，也就是無統計上顯著的呈現在debate的前後人們有什麼想法上的改變。
