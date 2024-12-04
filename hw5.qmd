@@ -1,0 +1,484 @@
+---
+title: "HW5"
+subtitle: "Regression Analysis"
+date: today
+author: H24101222_陳凱騫
+format:
+ pdf:
+    include-in-header:
+      - text: |
+         \usepackage{setspace,relsize}
+         \usepackage{geometry}
+         \geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+         \setmonofont{Microsoft JhengHei UI}  
+mainfont: "Microsoft JhengHei UI"
+# mainfont: "Microsoft JhengHei Bold"
+toc: true
+documentclass: article
+pdf-engine: xelatex
+execute:
+  tidy: true
+  echo: true
+  warning: false
+  message: false
+---
+
+# Queation 9 
+
+## Load package and data
+```{r}
+library(dplyr)
+library(ggplot2)
+library(GGally)
+# install.packages("GGally")
+auto <- read.csv("Auto.csv")
+head(auto)
+```
+
+## EDA
+
+```{r}
+#| output: asis
+library(Hmisc)
+latex(describe(auto), file = "", caption.placement = "top")
+```
+
+## (a)
+```{r}
+# a.
+Scatter_Matrix <- ggpairs(auto,columns = c(2:8),
+                          title = "Scatter Plot Matrix for Auto Dataset",
+                          axisLabels = "show")
+# ggsave("Scatter plot matrix.png", Scatter_Matrix, width = 7, height = 7, units = "in") 
+Scatter_Matrix
+```
+
+
+## (b)
+
+```{r}
+library(knitr)
+cor_matrix <- cor(auto[-c(1, 9, 10)])
+kable(cor_matrix)
+```
+
+## (c)
+
+因為origin應為nominal varible，因此將其作成dummy variable。
+```{r}
+## data without the column name
+
+auto_no_name <- auto[-c(1, 10)]
+
+## create dummy variables
+
+class(auto_no_name$origin)
+auto_no_name$origin <- as.factor(auto_no_name$origin)
+class(auto_no_name$origin)
+contrasts(auto_no_name$origin) <- contr.treatment(3, base = 1)
+```
+
+```{r}
+regression <- lm(mpg ~ ., data = auto_no_name)
+summary(regression)
+```
+
+- 從上方報表呈現之結果，可知在 null hypothesis為全部 $\beta = 0$ 時，其拒絕其虛無假設，因此 predictors 和 response 之間**有關係**。
+- **displacement, weight and year** have a statistically significant relationship to the response.
+- 0.777 is the coeeficient for the **year** variable suggest.
+
+## (e)
+
+```{r}
+interaction_model  <- lm(mpg ~ (.)^2, data = auto_no_name)
+summary(interaction_model)
+
+# 檢查統計顯著的交互作用
+significant_interactions <- summary(interaction_model)$coefficients
+significant_interactions <- significant_interactions[which(significant_interactions[,4] < 0.05),]
+print("統計顯著的交互作用項:")
+print(significant_interactions)
+```
+
+## (f)
+
+```{r}
+# 原始變數模型
+original_model <- lm(mpg ~ ., data = auto_no_name)
+summary(original_model)
+residuals_lm <- original_model$residuals
+names(auto_no_name)
+par(mfrow=c(2,3))
+plot(x = auto_no_name$cylinders, residuals_lm)
+plot(x = auto_no_name$displacement, residuals_lm)
+plot(x = auto_no_name$horsepower, residuals_lm)
+plot(x = auto_no_name$weight, residuals_lm)
+plot(x = auto_no_name$acceleration, residuals_lm)
+plot(x = auto_no_name$year, residuals_lm)
+# 包含轉換變數的模型
+
+transformed_model1 <- lm(mpg ~ cylinders + I(displacement^2) +
+                           sqrt(horsepower) + log(weight) + acceleration +
+                           year + origin, data = auto_no_name)
+summary(transformed_model1)
+residuals_tr <- transformed_model1$residuals
+par(mfrow=c(2,3))
+plot(x = auto_no_name$cylinders, residuals_tr)
+plot(x = auto_no_name$displacement, residuals_tr)
+plot(x = auto_no_name$horsepower, residuals_tr)
+plot(x = auto_no_name$weight, residuals_tr)
+plot(x = auto_no_name$acceleration, residuals_tr)
+plot(x = auto_no_name$year, residuals_tr)
+# 視覺化轉換效果
+par(mfrow = c(2, 2))
+plot(original_model, main = "Original Model")
+plot(transformed_model1, main = "Transformed Model")
+```
+
+The residual plots perform better in transformed model if you compare to the orignal model. Besides, there are some coefficient for some varaibles is more easier to have a statistically significant.
+
+# Question 10
+
+```{r}
+#| echo: false
+library(dplyr)
+```
+
+## Load dataset and EDA
+
+```{r}
+carseat <- read.csv("Carseats.csv")
+head(carseat)
+str(carseat)
+carseat$ShelveLoc <- as.factor(carseat$ShelveLoc)
+carseat$Urban <- as.factor(carseat$Urban)
+carseat$US <- as.factor(carseat$US)
+```
+
+```{r}
+#| output: asis
+library(Hmisc)
+latex(describe(carseat), file = "", caption.placement = "top")
+```
+
+## (a)
+
+```{r}
+lm.reg1 <- lm(Sales ~ Price + Urban + US, data = carseat)
+summary(lm.reg1)
+```
+
+This mean that :
+
+$Sales = 13.043469 - 0.054459 \times Price + 1.200573 \times US$
+
+where $US = 0$ when the store is **not** in the US and $US = 1$ when the store is in the US.
+
+## (b)
+
+```{r}
+lm.all <- lm(Sales ~ (.-X), data = carseat)
+summary(lm.all)
+```
+
+Below is an interpretation of each coefficient:
+
+### **Intercept ( $\beta_0 = 5.6606$ ):**
+The intercept represents the predicted value of the dependent variable (e.g., sales) when all independent variables are at their reference levels or equal to zero. For categorical variables, the reference categories are likely:
+- $ShelveLoc = Bad$
+- $Urban = No$
+- $US = No$
+
+### **Quantitative Variables:**
+1. **CompPrice ( $\beta_1 = 0.0928$ ):**
+   For every unit increase in the competitor's price, the dependent variable is expected to increase by 0.0928 units, holding all other variables constant.
+
+2. **Income ( $\beta_2 = 0.0158$ ):**
+   For every unit increase in income, the dependent variable increases by 0.0158 units, holding all other variables constant.
+
+3. **Advertising ( $\beta_3 = 0.1231$ ):**
+   For every unit increase in advertising expenditure, the dependent variable increases by 0.1231 units, holding all other variables constant.
+
+4. **Population ( $\beta_4 = 0.0002$ ):**
+   Population does not appear to have a statistically significant effect ( $p = 0.575$ ). However, the coefficient suggests that for every unit increase in population, the dependent variable increases by 0.0002 units.
+
+5. **Price ( $\beta_5 = -0.0954$ ):**
+   For every unit increase in the price of the product, the dependent variable decreases by 0.0954 units, holding all other variables constant. This negative coefficient indicates that higher prices reduce sales (or whatever the dependent variable represents).
+
+6. **Age ( $\beta_8 = -0.0460$ ):**
+   For every additional year of age, the dependent variable decreases by 0.0460 units, holding all other variables constant.
+
+7. **Education ( $\beta_9 = -0.0211$ ):**
+   Education **does not have a statistically significant effect** ( $p = 0.285$ ). The coefficient suggests that for every unit increase in education, the dependent variable decreases by 0.0211 units.
+
+### **Categorical Variables:**
+Categorical variables have been encoded with dummy variables, comparing levels against a reference level.
+
+1. **ShelveLoc:**
+   - **Good ( $\beta_6 = 4.8502$ ):**  
+     Products on "Good" shelves result in a predicted increase of 4.8502 units in the dependent variable compared to "Bad" shelves, holding all other variables constant.
+   - **Medium ( $\beta_7 = 1.9567$ ):**  
+     Products on "Medium" shelves result in a predicted increase of 1.9567 units compared to "Bad" shelves.
+
+2. **Urban:**
+   - **Yes ( $\beta_{10} = 0.1229$ ):**  
+     Urban areas **do not have a statistically significant effect** ( $p = 0.277$ ). The coefficient suggests that products in urban areas might lead to an increase of 0.1229 units compared to non-urban areas.
+
+3. **US:**
+   - **Yes ( $\beta_{11} = -0.1841$ ):**  
+     The US variable is **not statistically significant** ( $p = 0.220$ ). However, the coefficient suggests that products in the US lead to a decrease of 0.1841 units compared to non-US locations.
+
+### **Model Fit:**
+- **Residual Standard Error (RSE):** $1.019$ indicates the typical deviation of observed values from the regression line.
+- **$R^2 = 0.8734$:** The model explains 87.34% of the variability in the dependent variable.
+- **Adjusted $R^2 = 0.8698$:** Adjusted for the number of predictors, it still reflects a strong fit.
+- **F-statistic ($p < 2.2e^{-16}$):** The overall model is highly statistically significant. 
+
+## (c)
+
+The multiple linear regression model can be written as follows:
+
+$$
+Y = \beta_0 + \beta_1 \cdot \text{CompPrice} + \beta_2 \cdot \text{Income} + \beta_3 \cdot \text{Advertising} + \beta_4 \cdot \text{Population} + \beta_5 \cdot \text{Price} + \beta_6 \cdot \text{ShelveLocGood}
+$$
+$$
++ \beta_7 \cdot \text{ShelveLocMedium} + \beta_8 \cdot \text{Age} + \beta_9 \cdot \text{Education} + \beta_{10} \cdot \text{UrbanYes} + \beta_{11} \cdot \text{USYes} + \epsilon
+$$
+
+### Substituting the coefficients:
+$$
+Y = 5.6606 + 0.0928 \cdot \text{CompPrice} + 0.0158 \cdot \text{Income} + 0.1231 \cdot \text{Advertising} + 0.0002 \cdot \text{Population} - 0.0954 \cdot \text{Price}
+$$
+$$ 
++ 4.8502 \cdot \text{ShelveLocGood} + 1.9567 \cdot \text{ShelveLocMedium} - 0.0460 \cdot \text{Age} - 0.0211 \cdot \text{Education} + 0.1229 \cdot \text{UrbanYes}
+$$
+$$  
+- 0.1841 \cdot \text{USYes} + \epsilon
+$$
+
+### Handling qualitative variables:
+1. **Shelve Location ( $\text{ShelveLoc}$ ):**
+   - $\text{ShelveLocGood} = 1$ if the shelving location is "Good," and 0 otherwise.
+   - $\text{ShelveLocMedium} = 1$ if the shelving location is "Medium," and 0 otherwise.
+   - "Bad" shelving location is the reference category ( $\text{ShelveLocGood} = 0$ and $\text{ShelveLocMedium} = 0$ ).
+
+2. **Urban ( $\text{Urban}$ ):**
+   - $\text{UrbanYes} = 1$ if the location is urban, and 0 otherwise.
+   - "No" is the reference category ( $\text{UrbanYes} = 0$ ).
+
+3. **US ( $\text{US}$):**
+   - $\text{USYes} = 1$ if the location is in the US, and 0 otherwise.
+   - "No" is the reference category ( $\text{USYes} = 0$ ).
+
+### Model Interpretation:
+- When all quantitative variables are set to 0 and all categorical variables are at their reference levels ( $\text{ShelveLoc} = \text{"Bad"}$, $\text{Urban} = \text{"No"}$, $\text{US} = \text{"No"}$ )the predicted value of $Y$ is $5.606$
+- Each coefficient represents the change in $Y$ when the corresponding variable increases by one unit (for quantitative variables) or moves to a specific category (for qualitative variables), holding all else constant.
+
+## (d)
+
+### Coefficients Table
+
+The table below shows the estimated coefficients, standard errors, t-values, and p-values for each predictor:
+
+| Predictor         | Estimate   | Std. Error | t-value | p-value    | Reject $H_0$ ? |
+|-------------------|------------|------------|---------|------------|-------------------|
+| (Intercept)       | 5.6606     | 0.6034     | 9.380   | < 2e-16    | Yes               |
+| `CompPrice`       | 0.0928     | 0.0041     | 22.378  | < 2e-16    | Yes               |
+| `Income`          | 0.0158     | 0.0018     | 8.565   | 2.58e-16   | Yes               |
+| `Advertising`     | 0.1231     | 0.0111     | 11.066  | < 2e-16    | Yes               |
+| `Population`      | 0.0002     | 0.0004     | 0.561   | 0.575      | No                |
+| `Price`           | -0.0954    | 0.0027     | -35.700 | < 2e-16    | Yes               |
+| `ShelveLocGood`   | 4.8502     | 0.1531     | 31.678  | < 2e-16    | Yes               |
+| `ShelveLocMedium` | 1.9567     | 0.1261     | 15.516  | < 2e-16    | Yes               |
+| `Age`             | -0.0460    | 0.0032     | -14.472 | < 2e-16    | Yes               |
+| `Education`       | -0.0211    | 0.0197     | -1.070  | 0.285      | No                |
+| `UrbanYes`        | 0.1229     | 0.1130     | 1.088   | 0.277      | No                |
+| `USYes`           | -0.1841    | 0.1498     | -1.229  | 0.220      | No                |
+
+### Decision Rule
+
+At a significance level of  $\alpha = 0.05$ , we reject $H_0 : \beta_j = 0$ for predictors with $\text{p-value} < 0.05$ .
+
+
+### Results
+
+Based on the p-values:
+
+- **Reject $H_0$ :**
+  - `CompPrice`
+  - `Income`
+  - `Advertising`
+  - `Price`
+  - `ShelveLocGood`
+  - `ShelveLocMedium`
+  - `Age`
+
+- **Fail to Reject $H_0$ :**
+  - `Population`
+  - `Education`
+  - `UrbanYes`
+  - `USYes`
+
+### Conclusion
+
+The predictors `CompPrice`, `Income`, `Advertising`, `Price`, `ShelveLocGood`, `ShelveLocMedium`, and `Age` have a statistically significant relationship with the response variable $\text{Sales}$ . The remaining predictors do not show significant effects at $\alpha = 0.05$ .
+
+## (e)
+
+### Significant Predictors
+
+From the previous analysis, the following predictors showed evidence of association with the outcome ( $p < 0.05$ ):
+
+- `CompPrice`
+- `Income`
+- `Advertising`
+- `Price`
+- `ShelveLocGood`
+- `ShelveLocMedium`
+- `Age`
+
+### R Code for Smaller Model
+
+```{r}
+# Load necessary library (if needed)
+# library(datasets) # or appropriate library for the data
+# Fit the smaller model
+lm.smaller <- lm(Sales ~ CompPrice + Income + Advertising + Price + 
+                   ShelveLoc + ShelveLoc + Age, data = carseat)
+
+# Summary of the smaller model
+summary(lm.smaller)
+```
+
+## (f)
+
+### Comparing Model Fits: `lm.reg1` (Model a) and `lm.smaller` (Model e)
+
+#### Model (a): `lm.reg1`
+- **Formula**: `Sales ~ Price + Urban + US`
+- **Key Metrics**:
+  - Residual Standard Error (RSE): **2.472**
+  - Multiple $R^2$ : **0.2393**
+  - Adjusted $R^2$ : **0.2335**
+  - F-statistic: **41.52** ( $p < 2.2 \times 10^{-16}$ )
+
+#### Model (e): `lm.smaller`
+- **Formula**: `Sales ~ CompPrice + Income + Advertising + Price + ShelveLocGood + ShelveLocMedium + Age`
+- **Key Metrics**:
+  - Residual Standard Error (RSE): **1.019**
+  - Multiple $R^2$ : **0.872**
+  - Adjusted $R^2$ : **0.8697**
+  - F-statistic: **381.4** ( $p < 2.2 \times 10^{-16}$ )
+
+### Comparison Table
+
+| Metric               | Model (a): `lm.reg1`   | Model (e): `lm.smaller` |
+|-----------------------|------------------------|-------------------------|
+| Residual Standard Error (RSE) | 2.472                  | 1.019                   |
+| Multiple $R^2$   | 0.2393                 | 0.872                   |
+| Adjusted $R^2$   | 0.2335                 | 0.8697                  |
+| F-statistic          | 41.52                 | 381.4                   |
+
+### Interpretation
+
+#### **Model (a):**
+- Only 23.93% of the variation in `Sales` is explained by the predictors `Price`, `Urban`, and `US`.
+- The Residual Standard Error (RSE) is 2.472, indicating a high level of unexplained variability.
+- The $R^2$ and Adjusted $R^2$ values are relatively low, showing that the model does not fit the data well.
+
+#### **Model (e):**
+- This model explains **87.2% of the variation in `Sales`**, a substantial improvement over Model (a).
+- The Residual Standard Error (RSE) is significantly lower at **1.019**, showing that the model captures much more of the variability in `Sales`.
+- The $R^2$ and Adjusted $R^2$ values indicate a strong fit, and the F-statistic confirms that the model is highly significant.
+
+### Conclusion
+
+Model (e) fits the data far better than Model (a). It has a much higher $R^2$, lower Residual Standard Error, and a higher F-statistic. This suggests that Model (e) is more effective at explaining the variation in `Sales` and should be preferred for inference or prediction.
+
+
+# Question 3
+
+## Load dataset(Credit.csv) and EDA
+
+```{r}
+#| echo: false
+library(dplyr)
+```
+
+```{r}
+credit <- read.csv("Credit.csv")
+head(credit)
+str(credit)
+```
+
+```{r}
+#| output: asis
+library(Hmisc)
+latex(describe(credit), file = "", caption.placement = "top")
+```
+
+### M1
+
+```{r}
+attach(credit)
+```
+
+```{r}
+# M1
+lm.m1 <- lm(Balance~ Income)
+summary(lm.m1)
+```
+
+### M3
+
+```{r}
+# M3
+lm.m3 <- lm(Balance~ Income + Student)
+summary(lm.m3)
+```
+
+### M4
+
+```{r}
+# M4
+lm.m4 <- lm(Balance~ Income + Income*Student)
+summary(lm.m4)
+```
+
+### M5
+
+```{r}
+# M5
+lm.m5 <- lm(Balance~ Income + Student + Income*Student)
+summary(lm.m5)
+```
+
+### Model Summaries:
+1. **M1 (Balance ~ Income)**:
+   - Adjusted $R^2$: 0.213
+   - Residual standard error: 407.9
+   - Interpretation: A simple linear regression where Income significantly predicts Balance ($p < 0.001$).
+
+2. **M3 (Balance ~ Income + Student)**:
+   - Adjusted $R^2$: 0.2738
+   - Residual standard error: 391.8
+   - Interpretation: Adding the "Student" variable improves the model fit. Both Income ($p < 0.001$) and the Student indicator ($p < 0.001$) are statistically significant.
+
+3. **M4 (Balance ~ Income + Income * Student)**:
+   - Adjusted $R^2$: 0.2744
+   - Residual standard error: 391.6
+   - Interpretation: Includes an interaction term between Income and Student. However, the interaction term ($p = 0.249$) is not statistically significant, indicating that it does not contribute much to the model.
+
+4. **M5 (Balance ~ Income + Student + Income * Student)**:
+   - Adjusted $R^2$: 0.2744
+   - Residual standard error: 391.6
+   - Interpretation: Similar to M4. The interaction term remains insignificant.
+
+### Conclusion:
+- **Best Model**: **M3 (Balance ~ Income + Student)**
+  - **Reasons**:
+    1. It has a higher adjusted $R^2$ (0.2738) than M1, indicating improved explanatory power.
+    2. Both predictors (Income and Student) are statistically significant.
+    3. The model avoids the unnecessary complexity of the insignificant interaction term present in M4 and M5, maintaining parsimony.
+
+Model M3 strikes a balance between fit and simplicity. Use M3 for predicting "Balance" as it effectively captures the relationship without overcomplicating the model.
