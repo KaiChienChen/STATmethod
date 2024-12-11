@@ -1,0 +1,959 @@
+---
+title: "HW4"
+subtitle: "Statistical Method"
+date: today
+author: H24101222_陳凱騫
+format:
+ pdf:
+    include-in-header:
+      - text: |
+         \usepackage{setspace,relsize}
+         \usepackage{geometry}
+         \geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+         \setmonofont{Microsoft JhengHei UI}  
+         \usepackage{hyperref}
+mainfont: "Microsoft JhengHei UI"
+# mainfont: "Microsoft JhengHei Bold"
+toc: true
+documentclass: article
+pdf-engine: xelatex
+execute:
+  tidy: true
+  echo: true
+  warning: false
+  message: false
+---
+
+# Load datasets Set1.csv and Set2.csv
+
+```{r}
+#| echo: true
+#| code-fold: show
+library(knitr)
+data1 <- read.csv("Set1.csv")
+head(data1)
+data2 <- read.csv("Set2.csv")
+head(data2)
+```
+
+# EDA
+
+```{r}
+#| output: asis
+#| code-fold: false
+#| echo: false
+library(Hmisc)
+latex(describe(data1), file = "", caption.placement = "top")
+latex(describe(data2), file = "", caption.placement = "top")
+```
+
+```{r}
+boxplot(c(data1),horizontal=TRUE,main="boxplot of Set1")
+boxplot(c(data2),horizontal=TRUE,main="boxplot of Set2")
+
+```
+
+# (1.a) Use the method of moments (MME) to estimate the model parameters.
+
+## Normal
+
+-   The decision variables for the normal distribution are $\mu$ and $\sigma^{2}$.
+-   Objective function: $E(X)=\mu$ and $E(X^{2})= \sigma^{2} + \mu^{2}$
+-   Theoretical derivation / efficient algorithms: $$
+      \hat{\mu}_{MME}=\frac{1}{n}\sum_{i=1}^{n}x_{i}
+      $$ and $$
+      \hat{\sigma^{2}_{MME}}=\frac{1}{n}\sum_{i=1}^{n}x_{i}^{2}-\hat{\mu}_{MME}^{2}
+      $$
+
+### Set1
+
+```{r}
+n <- nrow(data1) # 樣本數量
+EX <- mean(data1$x) # 一次動差
+EX2 <- mean(data1$x^2) # 二次動差
+mu.mme <- EX
+sigma2.mme <- EX2 - (EX)^2
+print(c(mu.mme,sigma2.mme))
+```
+
+```{r}
+### Verification: By fitting plot
+hist(data1$x, probability = TRUE)
+x0 <- seq(-2, 3, 0.01)
+lines(x0, dnorm(x0, mu.mme, sqrt(sigma2.mme)), col = 2)
+plot(ecdf(data2$x))
+lines(x0, pnorm(x0, mu.mme, sqrt(sigma2.mme)), col = 2)
+```
+
+### Set2
+
+```{r}
+n <- nrow(data2) # 樣本數量
+EX <- mean(data2$x) # 一次動差
+EX2 <- mean(data2$x^2) # 二次動差
+mu.mme <- EX
+sigma2.mme <- EX2 - (EX)^2
+print(c(mu.mme,sigma2.mme))
+```
+
+```{r}
+### Verification: By fitting plot
+hist(data2$x, probability = TRUE)
+x0 <- seq(8.5, 32, 0.01)
+lines(x0, dnorm(x0, mu.mme, sqrt(sigma2.mme)), col = 2)
+plot(ecdf(data2$x))
+lines(x0, pnorm(x0, mu.mme, sqrt(sigma2.mme)), col = 2)
+```
+
+## Exponential distribution
+
+-   The decision variable for the exponential distribution is $\lambda$.
+-   Objective function: $E(X)=\frac{1}{\lambda}$
+-   Theoretical derivation / efficient algorithms: 
+  $$
+  \hat{\lambda}_{MME}=\frac{n}{\sum_{i=1}^{n}x_{i}}
+  $$
+
+### Set1
+
+```{r}
+n <- nrow(data1) # 樣本數量
+EX <- mean(data1$x) # 一次動差
+lambda.mme <- 1/EX
+cat("lambda.mme是:")
+print(lambda.mme)
+```
+
+```{r}
+### Verification: By fitting plot
+hist(data1$x, probability = TRUE)
+x0 <- seq(min(data1$x), max(data1$x), 0.01)
+lines(x0, dexp(x = x0, rate = lambda.mme), col = 2)
+plot(ecdf(data1$x))
+lines(x0, pexp(x0, rate = lambda.mme), col = 2)
+```
+
+### Set2
+
+```{r}
+n <- nrow(data2) # 樣本數量
+EX <- mean(data2$x) # 一次動差
+lambda.mme <- 1/EX
+cat("lambda.mme是:")
+print(lambda.mme)
+```
+
+```{r}
+### Verification: By fitting plot
+hist(data2$x, probability = TRUE)
+x0 <- seq(min(data2$x), max(data2$x), 0.01)
+lines(x0, dexp(x = x0, rate = lambda.mme), col = 2)
+plot(ecdf(data2$x))
+lines(x0, pexp(x0, rate = lambda.mme), col = 2)
+```
+
+## Laplace distribution
+
+-   The decision variables for the normal distribution are $\mu$ and $b$.
+
+-   Objective function: $E(X)=\mu$ and $E(X^2) = \sigma^2 + \mu^2$
+
+-   Theoretical derivation / efficient algorithms: 
+  $$
+  \hat{\mu}_{MME}=\frac{\sum^{n}_{i=1}x_{i}}{n}
+  $$
+  $$
+  \hat{b}_{MME} = \sqrt{\frac{1}{2} \left( \frac{1}{n} \sum_{i=1}^{n} X_i^2 - \left( \frac{1}{n} \sum_{i=1}^{n} X_i \right)^2 \right)} 
+  $$
+
+### Set1
+
+```{r}
+n <- nrow(data1) # 樣本數量
+EX <- mean(data1$x) # 一次動差
+EX2 <- mean(data1$x^2) # 二次動差
+mu.mme <- EX
+b.mme <- sqrt(0.5*(EX2-EX^2))
+cat("mu.mme是:")
+print(mu.mme)
+cat("b.mme是:")
+print(b.mme)
+```
+
+```{r}
+### Verification: By fitting plot
+# install.packages("extraDistr")
+library(extraDistr)
+hist(data1$x, probability = TRUE)
+x0 <- seq(min(data1$x), max(data1$x), 0.001)
+lines(x0, dlaplace(x0, mu = mu.mme, sigma= b.mme), col = 2, lwd =1.2)
+plot(ecdf(data1$x))
+lines(x0, plaplace(x0, mu = mu.mme, sigma = b.mme), col = 2, lwd=1.5)
+```
+
+### Set2
+
+```{r}
+n <- nrow(data2) # 樣本數量
+EX <- mean(data2$x) # 一次動差
+EX2 <- mean(data2$x^2) # 二次動差
+mu.mme <- EX
+b.mme <- sqrt(0.5*(EX2-EX^2))
+cat("mu.mme是:")
+print(mu.mme)
+cat("b.mme是:")
+print(b.mme)
+```
+
+```{r}
+### Verification: By fitting plot
+hist(data2$x, probability = TRUE)
+x0 <- seq(min(data2$x), max(data2$x), 0.001)
+lines(x0, dlaplace(x0, mu = mu.mme, sigma= b.mme), col = 2, lwd =1.2)
+plot(ecdf(data2$x))
+lines(x0, plaplace(x0, mu = mu.mme, sigma = b.mme), col = 2, lwd=1.5)
+```
+
+## Gamma distribution
+
+-   The decision variables for the normal distribution are $\alpha$ and $\lambda$.
+
+-   Objective function: $E(X)=\frac{\alpha}{\lambda}$ and $E(X^2) = \sigma^2 + EX^2= \frac{\alpha(\alpha+1)}{\lambda^2}$
+
+-   Theoretical derivation / efficient algorithms: 
+  $$
+  \hat{\alpha}_{MME}=\frac{E(X)^2}{E(X^2)-E(X)^2}
+  $$
+
+  $$
+  \hat{\lambda}_{MME} = \frac{E(X)}{E(X^2)-E(X)^2}
+  $$
+
+### Set1
+
+```{r}
+n <- nrow(data1) # 樣本數量
+EX <- mean(data1$x) # 一次動差
+EX2 <- mean(data1$x^2) # 二次動差
+alpha.mme <- EX^2/(EX2-(EX^2))
+lambda.mme <- EX/(EX2-(EX^2))
+cat("alpha.mme是:")
+print(alpha.mme)
+cat("lambda.mme是:")
+print(lambda.mme)
+```
+
+```{r}
+### Verification: By fitting plot
+# install.packages("extraDistr")
+library(extraDistr)
+hist(data1$x, probability = TRUE)
+x0 <- seq(min(data1$x), max(data1$x), 0.001)
+lines(x0, dgamma(x0, shape = alpha.mme, rate = lambda.mme), col = 2, lwd =1.2)
+plot(ecdf(data1$x))
+lines(x0, pgamma(x0, shape = alpha.mme, rate = lambda.mme), col = 2, lwd=1.5)
+```
+
+### Set2
+
+```{r}
+n <- nrow(data2) # 樣本數量
+EX <- mean(data2$x) # 一次動差
+EX2 <- mean(data2$x^2) # 二次動差
+alpha.mme <- EX^2/(EX2-(EX^2))
+lambda.mme <- EX/(EX2-(EX^2))
+cat("alpha.mme是:")
+print(alpha.mme)
+cat("lambda.mme是:")
+print(lambda.mme)
+```
+
+```{r}
+### Verification: By fitting plot
+# install.packages("extraDistr")
+library(extraDistr)
+hist(data2$x, probability = TRUE)
+x0 <- seq(min(data2$x), max(data2$x), 0.001)
+lines(x0, dgamma(x0, shape = alpha.mme, rate = lambda.mme), col = 2, lwd =1.2)
+plot(ecdf(data2$x))
+lines(x0, pgamma(x0, shape = alpha.mme, rate = lambda.mme), col = 2, lwd=1.5)
+```
+
+## Conclusion
+
+| Distribution | Dataset1 | Dataset2 |
+|--------------|----------|----------|
+| Normal       | ($\hat{\mu}$, $\hat{\sigma^2}$)= (0.025, 0.707) | ($\hat{\mu}$, $\hat{\sigma^2}$)= (19.247, 25.913)         |
+| Exponential  | $\hat{\lambda}$=40.468                          | $\hat{\lambda}$=0.052        |
+| Laplace      | ($\hat{\mu}$, $\hat{b^2}$)=(0.025,0.594)                               | ($\hat{\mu}$, $\hat{b^2}$)=(19.247,3.599)         |
+| Gamma        | ($\hat{\alpha}$,$\hat{\lambda}$)=(0.00086,0.03496)                               | ($\hat{\alpha}$,$\hat{\lambda}$)=(14.296,0.743)         |
+
+: MME to estimate the model parameters
+
+# (1.b) Use the maximum likelihood estimates (MLEs) to estimate the model parameters.
+
+## Normal
+
+-   The decision variables for the normal distribution are $\mu$ and $\sigma^{2}$.
+-   Objective function: $max_{(\mu,\sigma^{2})}\prod_{i=1}^{n}f(x_i;\mu,\sigma^2)$
+-   Theoretical derivation / efficient algorithms: 
+  $$
+  \hat{\mu}_{MLE}=\frac{1}{n}\sum_{i=1}^{n}x_{i}
+  $$ 
+  and 
+  $$
+  \hat{\sigma^{2}_{MlE}}=\frac{1}{n}\sum_{i=1}^{n}(x_{i}-\bar{x})^{2}
+  $$
+
+### Set1
+
+```{r}
+n <- length(data1$x)
+mu.mle <- mean(data1$x)
+sig2.mle <- sum((data1$x - mu.mle)^2)/n
+
+### Numerical method ###
+likelihood.normal <- function(par, data){
+  mu <- par[1]
+  sig2 <- par[2]
+  joint <- dnorm(data, mean = mu, sd = sqrt(sig2))
+  #return(prod(joint))
+  #return(sum(log(joint)))
+  return(-sum(log(joint)))
+}
+
+likelihood.normal(c(1, 2), data = data1$x) # -loglikelihood
+likelihood.normal(c(mu.mle, sig2.mle), data = data1$x) # -loglikelihood
+#optim(c(2, 1), likelihood.normal, data = dat.x, control=list(fnscale=-1))
+mle.norm <- optim(c(2, 1), likelihood.normal, data = data1$x, hessian = TRUE)
+
+```
+
+```{r}
+### Verification: By hessian matrix
+mle.norm
+det(mle.norm$hessian)
+```
+
+### Set2
+
+```{r}
+### Theoritical method ###
+n <- length(data2$x) 
+mu.mle <- mean(data2$x)
+sig2.mle <- sum((data2$x - mu.mle)^2)/n
+
+### Numerical method ###
+likelihood.normal <- function(par, data){
+  mu <- par[1]
+  sig2 <- par[2]
+  joint <- dnorm(data, mean = mu, sd = sqrt(sig2))
+  #return(prod(joint))
+  #return(sum(log(joint)))
+  return(-sum(log(joint)))
+}
+
+likelihood.normal(c(1, 2), data = data2$x) # -loglikelihood
+likelihood.normal(c(mu.mle, sig2.mle), data = data2$x) # -loglikelihood
+  #optim(c(2, 1), likelihood.normal, data = dat.x, control=list(fnscale=-1))
+mle.norm <- optim(c(mu.mle, sig2.mle), likelihood.normal, data = data2$x, hessian = TRUE)
+
+```
+
+```{r}
+### Verification: By hessian matrix
+mle.norm
+det(mle.norm$hessian)
+```
+
+## Exponential
+
+-   The decision variable for the exponential distribution is $\lambda$.
+-   Objective function: $\prod^{n}_{i=1}\lambda e^{\lambda x_{i}}$
+-   Theoretical derivation / efficient algorithms: 
+$$
+\hat{\lambda}=\frac{n}{\sum^{n}_{i=1}x_{i}}
+$$
+
+### Set1
+
+```{r}
+#| error: true
+### Theoritical method ###
+n <- length(data1$x)
+lambda.mle <- 1/mean(data1$x)
+lambda.mle
+### Numerical method ###
+likelihood.exp <- function(par, data){
+  lambda <- par[1]
+  joint <- dexp(data,rate = par)
+  #return(prod(joint))
+  #return(sum(log(joint)))
+  return(-sum(log(joint)))
+}
+
+likelihood.exp(c(lambda.mle), data = data1$x) # -loglikelihood
+#optim(c(2, 1), likelihood.normal, data = dat.x, control=list(fnscale=-1))
+mle.exp <- optim(c(40), likelihood.exp, data = data1$x)
+
+```
+從EDA中可以得知資料有負值，因此無法在此分布做MLE。
+
+### Set2
+
+```{r}
+### Theoritical method ###
+n <- length(data2$x) 
+lambda.mle <- 1/mean(data2$x)
+lambda.mle
+### Numerical method ###
+likelihood.exp <- function(par, data){
+  lambda <- par[1]
+  joint <- dexp(data,rate = par)
+  #return(prod(joint))
+  #return(sum(log(joint)))
+  return(-sum(log(joint)))
+}
+likelihood.exp(c(1), data = data2$x) # -loglikelihood
+likelihood.exp(c(lambda.mle), data = data2$x) # -loglikelihood
+#optim(c(2, 1), likelihood.normal, data = dat.x, control=list(fnscale=-1))
+mle.exp <- optim(1, likelihood.exp, data = data2$x, method = "Brent", lower = 1e-6, upper = 10,hessian = TRUE)
+
+```
+
+```{r}
+### Verification: By hessian matrix
+mle.exp
+```
+
+## Laplace
+
+-   The decision variables for the normal distribution are $\mu$ and $b$.
+
+-   Objective function: 
+$$
+\prod^{n}_{i=1}\frac{1}{2b}e^{-\frac{|x_{i}-\mu|}{b}}
+$$
+
+-   Theoretical derivation / efficient algorithms: 
+$$
+\hat{\mu} = \text{median}(\{x_i\})
+$$
+$$
+\hat{b} = \frac{1}{n} \sum_{i=1}^n |x_i - \hat{\mu}|
+$$
+
+### Set1
+
+```{r}
+### Theoritical method ###
+n <- length(data1$x)
+mu.mle <- median(data1$x)  # Median for mu
+b.mle <- mean(abs(data1$x - mu.mle))  # Mean absolute deviation for b
+### Numerical method ###
+# Negative log-likelihood function for Laplace distribution
+library(extraDistr)
+likelihood.laplace <- function(par, data) {
+  mu <- par[1]
+  b <- par[2]
+  if (b <= 0) return(Inf)  # Ensure valid parameter range
+  -sum(dlaplace(data, mu = mu, sigma = b, log = TRUE))  # Negative log-likelihood
+}
+init <- c(mu.mle, b.mle)
+# Perform optimization
+mle.laplace <- optim(
+  par = init,
+  fn = likelihood.laplace,
+  data = data1$x,
+  method = "L-BFGS-B",
+  lower = c(-Inf, 1e-6),  # Lower bounds
+  upper = c(Inf, Inf),    # Upper bounds
+  hessian = TRUE          # Compute Hessian matrix
+)
+# Extract results
+mle.laplace
+```
+
+### Set2
+
+```{r}
+### Theoritical method ###
+n <- length(data2$x) 
+mu.mle <- median(data2$x)  # Median for mu
+b.mle <- mean(abs(data2$x - mu.mle))  # Mean absolute deviation for b
+### Numerical method ###
+# Negative log-likelihood function for Laplace distribution
+library(extraDistr)
+likelihood.laplace <- function(par, data) {
+  mu <- par[1]
+  b <- par[2]
+  if (b <= 0) return(Inf)  # Ensure valid parameter range
+  -sum(dlaplace(data, mu = mu, sigma = b, log = TRUE))  # Negative log-likelihood
+}
+init <- c(mu.mle, b.mle)
+# Perform optimization
+mle.laplace <- optim(
+  par = init,
+  fn = likelihood.laplace,
+  data = data2$x,
+  method = "L-BFGS-B",
+  lower = c(-Inf, 1e-6),  # Lower bounds
+  upper = c(Inf, Inf),    # Upper bounds
+  hessian = TRUE          # Compute Hessian matrix
+)
+# Extract results
+mle.laplace
+```
+
+## Gamma
+
+- The decision variables for the normal distribution are $\alpha$ and $\lambda$.
+- Objective function: 
+$$
+\prod^{n}_{i=1}\frac{\lambda^\alpha x_{i}^{\alpha - 1} e^{-\lambda x_{i}}}{\Gamma(\alpha)}
+$$
+- Gamma的參數估計(MLE)不好寫成close form 
+
+### Set1
+
+```{r}
+#| error: true
+### Numerical method ###
+# Negative log-likelihood function for Gamma distribution (rate parameterization)
+library(extraDistr)
+likelihood.gamma <- function(par, data) {
+  alpha <- par[1]
+  lambda <- par[2]
+  
+  if (alpha <= 0 || lambda <= 0) return(Inf)  # Ensure valid parameter range
+  # Negative log-likelihood (using dgamma from extraDistr package)
+  -sum(dgamma(data, shape = alpha, rate = lambda, log = TRUE))  # Negative log-likelihood
+}
+
+# Initial guesses for parameters (alpha, lambda)
+alpha.mle <- 2   # Example initial guess for alpha
+lambda.mle <- 1  # Example initial guess for lambda
+init <- c(alpha.mle, lambda.mle)
+# Perform optimization
+mle.gamma <- optim(
+  par = init,
+  fn = likelihood.gamma,
+  data = data1$x,
+  method = "L-BFGS-B",
+  lower = c(0.1, 1e-6),  # Lower bounds for alpha and lambda
+  upper = c(Inf, Inf),   # Upper bounds for alpha and lambda
+  hessian = TRUE         # Compute Hessian matrix for parameter uncertainty
+)
+
+# Extract results
+mle.gamma
+```
+因為data有負號，因此gamma不適合
+
+### Set2
+
+```{r}
+### Numerical method ###
+# Negative log-likelihood function for Gamma distribution (rate parameterization)
+library(extraDistr)
+likelihood.gamma <- function(par, data) {
+  alpha <- par[1]
+  lambda <- par[2]
+  if (alpha <= 0 || lambda <= 0) return(Inf)  # Ensure valid parameter range
+  # Negative log-likelihood (using dgamma from extraDistr package)
+  -sum(dgamma(data, shape = alpha, rate = lambda, log = TRUE))  # Negative log-likelihood
+}
+likelihood.gamma(c(2,1),data2$x)
+likelihood.gamma(c(13.693, 0.711),data2$x)
+
+# Initial guesses for parameters (alpha, lambda)
+alpha.mle <- 2   # Example initial guess for alpha
+lambda.mle <- 1  # Example initial guess for lambda
+init <- c(alpha.mle, lambda.mle)
+# Perform optimization
+mle.gamma <- optim(
+  par = init,
+  fn = likelihood.gamma,
+  data = data2$x,
+  method = "L-BFGS-B",
+  lower = c(0.1, 1e-6),  # Lower bounds for alpha and lambda
+  upper = c(Inf, Inf),   # Upper bounds for alpha and lambda
+  hessian = TRUE         # Compute Hessian matrix for parameter uncertainty
+)
+
+# Extract results
+mle.gamma
+det(mle.gamma$hessian)
+```
+
+## Conclusion
+
+| Distribution | Dataset1 | Dataset2 |
+|--------------|----------|----------|
+| Normal       | ($\hat{\mu}$, $\hat{\sigma^2}$)= (0.025, 0.707) | ($\hat{\mu}$, $\hat{\sigma^2}$)= (19.247, 25.913)         |
+| Exponential  | $\hat{\lambda}$=X                               | $\hat{\lambda}$=0.052         |
+| Laplace      | ($\hat{\mu}$, $\hat{b^2}$)=(0.054,0.595)                               | ($\hat{\mu}$, $\hat{b^2}$)=(18.631,4.150)         |
+| Gamma        | ($\hat{\alpha}$,$\hat{\lambda}$)=X                             | ($\hat{\alpha}$,$\hat{\lambda}$)=(13.693,0.711)         |
+
+: MLE to estimate the model parameters
+
+# (1.c) Are the MMEs and MLEs the same for each distribution?
+
+觀察以下2個table，發現在normal和exponential在不同estimation是一樣的。
+
+| Distribution | Dataset1 | Dataset2 |
+|--------------|----------|----------|
+| Normal       | ($\hat{\mu}$, $\hat{\sigma^2}$)= (0.025, 0.707) | ($\hat{\mu}$, $\hat{\sigma^2}$)= (19.247, 25.913)         |
+| Exponential  | $\hat{\lambda}$=40.468                          | $\hat{\lambda}$=0.052        |
+| Laplace      | ($\hat{\mu}$, $\hat{b^2}$)=(0.025,0.594)                               | ($\hat{\mu}$, $\hat{b^2}$)=(19.247,3.599)         |
+| Gamma        | ($\hat{\alpha}$,$\hat{\lambda}$)=(0.00086,0.03496)                               | ($\hat{\alpha}$,$\hat{\lambda}$)=(14.296,0.743)         |
+
+: MME to estimate the model parameters
+
+| Distribution | Dataset1 | Dataset2 |
+|--------------|----------|----------|
+| Normal       | ($\hat{\mu}$, $\hat{\sigma^2}$)= (0.025, 0.707) | ($\hat{\mu}$, $\hat{\sigma^2}$)= (19.247, 25.913)         |
+| Exponential  | $\hat{\lambda}$=X                               | $\hat{\lambda}$=0.052         |
+| Laplace      | ($\hat{\mu}$, $\hat{b^2}$)=(0.054,0.595)                               | ($\hat{\mu}$, $\hat{b^2}$)=(18.631,4.150)         |
+| Gamma        | ($\hat{\alpha}$,$\hat{\lambda}$)=X                             | ($\hat{\alpha}$,$\hat{\lambda}$)=(13.693,0.711)         |
+
+: MLE to estimate the model parameters
+
+# (1.d) and (1.e)
+
+- 使用MME來找適合Dataset1和Dataset2的分布。
+- 從(a)小題的圖可以看到Dataset1應該比較適合normal 或 laplace 而 Dataset2應該比較適合normal 或 gamma。
+
+\hyperlink{page.4}{plot for normal}
+\hyperlink{page.9}{plot for laplace}
+\hyperlink{page.13}{plot for gamma}
+
+# (1.f)
+
+使用goodness-of-fit來檢定適合分布
+
+## dataset1
+
+### normal
+```{r}
+### Goodness-of-fit ###
+### Hypothesis Testing using theoretical cdf ###
+# install.packages("goftest")
+library("goftest")
+```
+```{r}
+n<-nrow(data1)# 樣本數量
+EX<-mean(data1$x)# 一次動差
+EX2<-mean(data1$x^2)# 二次動差
+mu.mme<-EX
+sigma2.mme<-EX2-(EX)^2
+
+### K-S test ###
+ks.N <- ks.test(data1$x, "pnorm", mean = mu.mme, sd = sqrt(sigma2.mme))
+### AD test ###
+ad.N <- ad.test(data1$x, "pnorm", mean = mu.mme, sd = sqrt(sigma2.mme))
+### CVM test ###
+cvm.N <- cvm.test(data1$x, "pnorm", mean = mu.mme, sd = sqrt(sigma2.mme))
+# Summary #
+dist.1 <- data.frame(normal = c(ks.N$p.value, ad.N$p.value, cvm.N$p.value))
+```
+
+### laplace
+
+```{r}
+library(extraDistr)
+n <- nrow(data1) # 樣本數量
+EX <- mean(data1$x) # 一次動差
+EX2 <- mean(data1$x^2) # 二次動差
+mu.mme <- EX
+b.mme <- sqrt(0.5*(EX2-EX^2))
+
+### K-S test ###
+ks.L <- ks.test(data1$x, "plaplace", mu = mu.mme, sigma = b.mme)
+### AD test ###
+ad.L <- ad.test(data1$x, "plaplace", mu = mu.mme, sigma = b.mme)
+### CVM test ###
+cvm.L <- cvm.test(data1$x, "plaplace", mu = mu.mme, sigma = b.mme)
+# Summary #
+dist.1$laplace <- c(ks.L$p.value, ad.L$p.value, cvm.L$p.value)
+kable(dist.1)
+```
+
+## dataset2
+
+### normal
+
+```{r}
+n<-nrow(data2)# 樣本數量
+EX<-mean(data2$x)# 一次動差
+EX2<-mean(data2$x^2)# 二次動差
+mu.mme<-EX
+sigma2.mme<-EX2-(EX)^2
+
+### K-S test ###
+ks.N <- ks.test(data2$x, "pnorm", mean = mu.mme, sd = sqrt(sigma2.mme))
+### AD test ###
+ad.N <- ad.test(data2$x, "pnorm", mean = mu.mme, sd = sqrt(sigma2.mme))
+### CVM test ###
+cvm.N <- cvm.test(data2$x, "pnorm", mean = mu.mme, sd = sqrt(sigma2.mme))
+# Summary #
+dist.2 <- data.frame(normal = c(ks.N$p.value, ad.N$p.value, cvm.N$p.value))
+```
+
+### gamma
+
+```{r}
+n <- nrow(data2) # 樣本數量
+EX <- mean(data2$x) # 一次動差
+EX2 <- mean(data2$x^2) # 二次動差
+alpha.mme <- EX^2/(EX2-(EX^2))
+lambda.mme <- EX/(EX2-(EX^2))
+
+### K-S test ###
+ks.G <- ks.test(data2$x, "pgamma", shape = alpha.mme, rate = lambda.mme)
+### AD test ###
+ad.G <- ad.test(data2$x, "pgamma", shape = alpha.mme, rate = lambda.mme)
+### CVM test ###
+cvm.G <- cvm.test(data2$x, "pgamma", shape = alpha.mme, rate = lambda.mme)
+# Summary #
+dist.2$g <- c(ks.G$p.value, ad.G$p.value, cvm.G$p.value)
+kable(dist.2)
+```
+
+# (1.g)
+
+## dataset1
+
+用MLE之結果算log-likelihood 之值
+```{r}
+# Load necessary libraries
+library(MASS)    # For fitdistr
+library(stats4)  # For AIC function if needed
+
+n <- length(data1$x)
+mu.mle <- mean(data1$x)
+sig2.mle <- sum((data1$x - mu.mle)^2)/n
+
+### Numerical method ###
+likelihood.normal <- function(par, data){
+  mu <- par[1]
+  sig2 <- par[2]
+  joint <- dnorm(data, mean = mu, sd = sqrt(sig2))
+  #return(prod(joint))
+  #return(sum(log(joint)))
+  return(sum(log(joint)))
+}
+
+likelihood.n1 <- likelihood.normal(c(mu.mle, sig2.mle), data = data1$x) # loglikelihood
+###########laplace
+mu.mle <- median(data1$x)  # Median for mu
+b.mle <- mean(abs(data1$x - mu.mle))  # Mean absolute deviation for b
+### Numerical method ###
+# Negative log-likelihood function for Laplace distribution
+library(extraDistr)
+likelihood.laplace <- function(par, data) {
+  mu <- par[1]
+  b <- par[2]
+  if (b <= 0) return(Inf)  # Ensure valid parameter range
+  sum(dlaplace(data, mu = mu, sigma = b, log = TRUE))  # Negative log-likelihood
+}
+likelihood.l1 <- likelihood.laplace(c(mu.mle, b.mle), data = data1$x) # loglikelihood
+
+# Number of parameters
+k_norm <- 2  # Normal: mean and sd
+k_laplace <- 2  # Laplace: mean and scale
+
+# Calculate AICs
+AIC_norm <- -2 * likelihood.n1 + 2 * k_norm
+AIC_laplace <- -2 * likelihood.l1 + 2 * k_laplace
+
+# Compare results
+results1 <- data.frame(
+  Distribution = c("Normal", "Laplace"),
+  LogLikelihood = c(likelihood.n1, likelihood.l1),
+  AIC = c(AIC_norm, AIC_laplace)
+)
+kable(results1)
+```
+
+從結果來看，laplace表現的更好。
+
+## dataset2
+
+用MLE之結果算log-likelihood 之值
+```{r}
+# Load necessary libraries
+library(MASS)    # For fitdistr
+library(stats4)  # For AIC function if needed
+
+n <- length(data2$x)
+mu.mle <- mean(data2$x)
+sig2.mle <- sum((data2$x - mu.mle)^2)/n
+
+### Numerical method ###
+likelihood.normal <- function(par, data){
+  mu <- par[1]
+  sig2 <- par[2]
+  joint <- dnorm(data, mean = mu, sd = sqrt(sig2))
+  #return(prod(joint))
+  #return(sum(log(joint)))
+  return(sum(log(joint)))
+}
+
+likelihood.n2 <- likelihood.normal(c(mu.mle, sig2.mle), data = data1$x) # loglikelihood
+########### gamma
+### Numerical method ###
+# log-likelihood function for Gamma distribution (rate parameterization)
+library(extraDistr)
+likelihood.gamma <- function(par, data) {
+  alpha <- par[1]
+  lambda <- par[2]
+  if (alpha <= 0 || lambda <= 0) return(Inf)  # Ensure valid parameter range
+  # Negative log-likelihood (using dgamma from extraDistr package)
+  sum(dgamma(data, shape = alpha, rate = lambda, log = TRUE))  #  log-likelihood
+}
+likelihood.g2 <- likelihood.gamma(c(13.6931953, 0.7114569), data = data2$x) # loglikelihood
+
+k_norm <- 2
+k_gamma <- 2
+# Calculate AICs
+AIC_norm <- -2 * likelihood.n2 + 2 * k_norm
+AIC_gamma <- -2 * likelihood.g2 + 2 * k_gamma
+
+# Compare results
+results2 <- data.frame(
+  Distribution = c("Normal", "Gamma"),
+  LogLikelihood = c(likelihood.n2, likelihood.g2),
+  AIC = c(AIC_norm, AIC_gamma)
+)
+kable(results2)
+```
+
+從此結果來看，gamma分布應該比較適合dataset2。
+
+# iris data for question 2
+
+# Load datasets iris.csv
+
+```{r}
+#| echo: true
+#| code-fold: show
+library(knitr)
+iris <- read.csv("iris.csv") ; head(iris)
+```
+
+# EDA
+
+```{r}
+#| output: asis
+#| code-fold: false
+#| echo: false
+library(Hmisc)
+latex(describe(iris), file = "", caption.placement = "top")
+```
+
+# (2.a)
+
+```{r}
+n <- nrow(iris); n
+petal.l <- iris[,3]
+mu.mle <- mean(petal.l) ; mu.mle
+sig2.mle <- sum((petal.l - mu.mle)^2)/n ; sig2.mle
+
+### Numerical method ###
+likelihood.normal <- function(par, data){
+  mu <- par[1]
+  sig2 <- par[2]
+  joint <- dnorm(data, mean = mu, sd = sqrt(sig2))
+  #return(prod(joint))
+  #return(sum(log(joint)))
+  return(-sum(log(joint)))
+}
+likelihood.normal(c(mu.mle, sig2.mle), data = petal.l) # -loglikelihood
+likelihood.normal(c(3.757784, 3.095191), data = petal.l) # -loglikelihood
+
+#optim(c(2, 1), likelihood.normal, data = dat.x, control=list(fnscale=-1))
+mle.norm <- optim(c(2, 1), likelihood.normal, data = petal.l, hessian = TRUE)
+mle.norm
+```
+
+By the MLE(Normal distribution), we can know that the parameters is:
+$$
+\hat{\mu}_{MLE} = 3.758
+$$
+
+$$
+\hat{\sigma^2}_{MLE} = 3.095503
+$$
+
+# (2.b)
+
+According to 2.a, we can know that $\hat{\mu}_{MLE}= 3.758$ by MLE method. This value is apparently greater than we assumed, 1.5.
+
+# (2.c)
+
+By 2.a, we know that the sampling distribution of $\hat{\mu}$ is $\hat{\mu} \sim N(3.758, \frac{3.095503}{150})$.
+
+I decide to use the bootstrapping method to complete this process. The code is shown below:
+
+```{r}
+set.seed(24101222)
+# 1. 定義參數
+B <- 1000  # 自助抽樣次數
+n <- length(petal.l)  # 樣本大小 150
+# 2. 初始化用於存放均值的向量
+bootstrap_means <- numeric(B)
+# 3. 開始自助抽樣
+for (i in 1:B) {
+  # 隨機抽樣（有放回）
+  resampled_data <- sample(petal.l, size = n, replace = TRUE)
+  # 計算重抽樣後的均值
+  bootstrap_means[i] <- mean(resampled_data)
+}
+# 4. 計算 95% 置信區間
+ci_lower <- quantile(bootstrap_means, probs = 0.025)  # 下界（2.5% 分位數）
+ci_upper <- quantile(bootstrap_means, probs = 0.975)  # 上界（97.5% 分位數）
+# 5. 輸出結果
+cat("95% Bootstrap Confidence Interval for Mean:\n")
+cat("Lower Bound:", ci_lower, "\n")
+cat("Upper Bound:", ci_upper, "\n")
+```
+
+According to the result shown above, the **95% confidence interval** of $\mu$ is $\mu \in [3.488, 4.032717]$
+
+# (2.d)
+
+By the result shown in 2.c, the statement which said that **the mean of petal length is 1.5** is not reasonable.
+
+# (2.e)
+
+$t \ statistic = \frac{\bar{x}- \mu}{s/\sqrt{n}}$ 
+
+```{r}
+# 1. 假設檢定參數
+mu_0 <- 1.5  # 假設均值
+alpha <- 0.05  # 顯著性水平
+
+# 2. 計算 t 統計量
+sample_mean <- mean(petal.l)  
+sample_sd <- sd(petal.l)      
+n <- length(petal.l)          
+t_stat <- (sample_mean - mu_0) / (sample_sd / sqrt(n))  # t 統計量
+
+# 3. 計算自由度與 p 值
+df <- n - 1  # 自由度
+p_value <- 2 * pt(-abs(t_stat), df)  # 雙尾檢定的 p 值
+
+# 4. 檢查是否拒絕 H0
+if (p_value < alpha) {
+  cat("Reject H0: The mean is significantly different from 1.5.\n")
+} else {
+  cat("Fail to Reject H0: There is no significant evidence that the mean is different from 1.5.\n")
+}
+
+# 5. 顯示結果
+cat("t-statistic:", t_stat, "\n")
+cat("p-value:", p_value, "\n")
+```
+
+As the result shown in the code chunk, we reject the null hypothesis which said that the true mean is 1.5. This result have the same conclusion as the result in 2.d.
